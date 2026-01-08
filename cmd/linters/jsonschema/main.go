@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	linter "github.com/grafana/mcp-grafana/internal/linter/jsonschema"
+	linter "github.com/anyshift-engineering/mcp-grafana/internal/linter/jsonschema"
 )
 
 func main() {

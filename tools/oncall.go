@@ -11,7 +11,7 @@ import (
 
 	aapi "github.com/grafana/amixr-api-go-client"
 	"github.com/grafana/grafana-openapi-client-go/client"
-	mcpgrafana "github.com/grafana/mcp-grafana"
+	mcpgrafana "github.com/anyshift-engineering/mcp-grafana"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )

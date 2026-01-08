@@ -10,7 +10,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/grafana/grafana-openapi-client-go/client"
-	mcpgrafana "github.com/grafana/mcp-grafana"
+	mcpgrafana "github.com/anyshift-engineering/mcp-grafana"
 )
 
 // newTestContext creates a new context with the Grafana URL and service account token

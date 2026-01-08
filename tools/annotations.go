@@ -7,7 +7,7 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 	"strconv"
 
-	mcpgrafana "github.com/grafana/mcp-grafana"
+	mcpgrafana "github.com/anyshift-engineering/mcp-grafana"
 
 	"github.com/grafana/grafana-openapi-client-go/client/annotations"
 	"github.com/grafana/grafana-openapi-client-go/models"
