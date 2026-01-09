@@ -363,6 +363,32 @@ func NewExtraHeadersRoundTripper(rt http.RoundTripper, headers map[string]string
 	}
 }
 
+
+func BuildTransport(cfg *GrafanaConfig, base http.RoundTripper) (http.RoundTripper, error) {
+	if base == nil {
+		base = http.DefaultTransport
+	}
+	transport := base
+
+	if cfg.TLSConfig != nil {
+		t, ok := base.(*http.Transport)
+		if !ok {
+			t = http.DefaultTransport.(*http.Transport).Clone()
+		}
+		var err error
+		transport, err = cfg.TLSConfig.HTTPTransport(t)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create TLS transport: %w", err)
+		}
+	}
+
+	if len(cfg.ExtraHeaders) > 0 {
+		transport = NewExtraHeadersRoundTripper(transport, cfg.ExtraHeaders)
+	}
+
+	return transport, nil
+}
+
 // Gets info from environment
 func extractKeyGrafanaInfoFromEnv() (url, apiKey string, auth *url.Userinfo, orgId int64) {
 	url, apiKey = urlAndAPIKeyFromEnv()
@@ -642,23 +668,18 @@ var ExtractIncidentClientFromEnv server.StdioContextFunc = func(ctx context.Cont
 	client := incident.NewClient(incidentURL, apiKey)
 
 	config := GrafanaConfigFromContext(ctx)
-	// Configure custom TLS if available
-	if tlsConfig := config.TLSConfig; tlsConfig != nil {
-		transport, err := tlsConfig.HTTPTransport(http.DefaultTransport.(*http.Transport))
-		if err != nil {
-			slog.Error("Failed to create custom transport for incident client, using default", "error", err)
-		} else {
-			orgIDWrapped := NewOrgIDRoundTripper(transport, config.OrgID)
-			client.HTTPClient.Transport = wrapWithUserAgent(orgIDWrapped)
-			slog.Debug("Using custom TLS configuration, user agent, and org ID support for incident client",
-				"cert_file", tlsConfig.CertFile,
-				"ca_file", tlsConfig.CAFile,
-				"skip_verify", tlsConfig.SkipVerify)
-		}
+	transport, err := BuildTransport(&config, nil)
+	if err != nil {
+		slog.Error("Failed to create custom transport for incident client, using default", "error", err)
 	} else {
-		// No custom TLS, but still add org ID and user agent
-		orgIDWrapped := NewOrgIDRoundTripper(http.DefaultTransport, config.OrgID)
+		orgIDWrapped := NewOrgIDRoundTripper(transport, config.OrgID)
 		client.HTTPClient.Transport = wrapWithUserAgent(orgIDWrapped)
+		if config.TLSConfig != nil {
+			slog.Debug("Using custom TLS configuration, user agent, and org ID support for incident client",
+				"cert_file", config.TLSConfig.CertFile,
+				"ca_file", config.TLSConfig.CAFile,
+				"skip_verify", config.TLSConfig.SkipVerify)
+		}
 	}
 
 	return context.WithValue(ctx, incidentClientKey{}, client)
@@ -672,23 +693,18 @@ var ExtractIncidentClientFromHeaders httpContextFunc = func(ctx context.Context,
 	client := incident.NewClient(incidentURL, apiKey)
 
 	config := GrafanaConfigFromContext(ctx)
-	// Configure custom TLS if available
-	if tlsConfig := config.TLSConfig; tlsConfig != nil {
-		transport, err := tlsConfig.HTTPTransport(http.DefaultTransport.(*http.Transport))
-		if err != nil {
-			slog.Error("Failed to create custom transport for incident client, using default", "error", err)
-		} else {
-			orgIDWrapped := NewOrgIDRoundTripper(transport, orgID)
-			client.HTTPClient.Transport = wrapWithUserAgent(orgIDWrapped)
-			slog.Debug("Using custom TLS configuration, user agent, and org ID support for incident client",
-				"cert_file", tlsConfig.CertFile,
-				"ca_file", tlsConfig.CAFile,
-				"skip_verify", tlsConfig.SkipVerify)
-		}
+	transport, err := BuildTransport(&config, nil)
+	if err != nil {
+		slog.Error("Failed to create custom transport for incident client, using default", "error", err)
 	} else {
-		// No custom TLS, but still add org ID and user agent
-		orgIDWrapped := NewOrgIDRoundTripper(http.DefaultTransport, orgID)
+		orgIDWrapped := NewOrgIDRoundTripper(transport, orgID)
 		client.HTTPClient.Transport = wrapWithUserAgent(orgIDWrapped)
+		if config.TLSConfig != nil {
+			slog.Debug("Using custom TLS configuration, user agent, and org ID support for incident client",
+				"cert_file", config.TLSConfig.CertFile,
+				"ca_file", config.TLSConfig.CAFile,
+				"skip_verify", config.TLSConfig.SkipVerify)
+		}
 	}
 
 	return context.WithValue(ctx, incidentClientKey{}, client)
