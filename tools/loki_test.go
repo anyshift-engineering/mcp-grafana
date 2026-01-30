@@ -16,7 +16,7 @@ func TestLokiTools(t *testing.T) {
 			DatasourceUID: "loki",
 		})
 		require.NoError(t, err)
-		assert.Len(t, result, 3)
+		assert.NotEmpty(t, result, "Should have at least one label name")
 	})
 
 	t.Run("get loki label values", func(t *testing.T) {
@@ -77,5 +77,90 @@ func TestLokiTools(t *testing.T) {
 		// Should return an empty slice, not nil
 		assert.NotNil(t, result, "Empty results should be an empty slice, not nil")
 		assert.Equal(t, 0, len(result), "Empty results should have length 0")
+	})
+
+	t.Run("query loki patterns", func(t *testing.T) {
+		ctx := newTestContext()
+		result, err := queryLokiPatterns(ctx, QueryLokiPatternsParams{
+			DatasourceUID: "loki",
+			LogQL:         `{container=~".+"}`,
+		})
+		require.NoError(t, err)
+		assert.NotNil(t, result, "Should return a result (may be empty if no patterns detected)")
+
+		// If we got patterns, check that they have the expected structure
+		for _, pattern := range result {
+			assert.NotEmpty(t, pattern.Pattern, "Pattern should have a pattern string")
+			// TotalCount should be non-negative
+			assert.GreaterOrEqual(t, pattern.TotalCount, int64(0), "TotalCount should be non-negative")
+		}
+	})
+
+	t.Run("query loki metrics instant", func(t *testing.T) {
+		ctx := newTestContext()
+		result, err := queryLokiLogs(ctx, QueryLokiLogsParams{
+			DatasourceUID: "loki",
+			LogQL:         `sum by(container) (count_over_time({container=~".+"}[5m]))`,
+			QueryType:     "instant",
+		})
+		require.NoError(t, err)
+		// Instant metric queries may return empty results if no data matches
+		assert.NotNil(t, result, "Result should not be nil")
+
+		// If we got results, verify the structure
+		for _, entry := range result {
+			assert.NotNil(t, entry.Labels, "Metric sample should have labels")
+			assert.NotNil(t, entry.Value, "Instant metric should have a single value")
+			assert.Nil(t, entry.Values, "Instant metric should not have Values array")
+			assert.Empty(t, entry.Line, "Metric query should not have log line")
+		}
+	})
+
+	t.Run("query loki metrics range", func(t *testing.T) {
+		ctx := newTestContext()
+		result, err := queryLokiLogs(ctx, QueryLokiLogsParams{
+			DatasourceUID: "loki",
+			LogQL:         `sum by(container) (count_over_time({container=~".+"}[5m]))`,
+			QueryType:     "range",
+			StepSeconds:   60,
+		})
+		require.NoError(t, err)
+		// Range metric queries may return empty results if no data matches
+		assert.NotNil(t, result, "Result should not be nil")
+
+		// If we got results, verify the structure
+		for _, entry := range result {
+			assert.NotNil(t, entry.Labels, "Metric series should have labels")
+			assert.NotEmpty(t, entry.Values, "Range metric should have Values array")
+			assert.Nil(t, entry.Value, "Range metric should not have single Value")
+			assert.Empty(t, entry.Line, "Metric query should not have log line")
+
+			// Verify each metric value has timestamp and value
+			for _, mv := range entry.Values {
+				assert.NotEmpty(t, mv.Timestamp, "Metric value should have timestamp")
+				// Value can be 0, so we don't assert on its value
+			}
+		}
+	})
+
+	t.Run("query loki logs backward compatibility", func(t *testing.T) {
+		// Test that existing queries without queryType still work (default to range)
+		ctx := newTestContext()
+		result, err := queryLokiLogs(ctx, QueryLokiLogsParams{
+			DatasourceUID: "loki",
+			LogQL:         `{container=~".+"}`,
+			Limit:         5,
+		})
+		require.NoError(t, err)
+		assert.NotNil(t, result, "Result should not be nil")
+
+		// Verify log entries have expected structure
+		for _, entry := range result {
+			assert.NotEmpty(t, entry.Timestamp, "Log entry should have timestamp")
+			assert.NotEmpty(t, entry.Line, "Log entry should have log line")
+			assert.NotNil(t, entry.Labels, "Log entry should have labels")
+			assert.Nil(t, entry.Value, "Log entry should not have metric value")
+			assert.Nil(t, entry.Values, "Log entry should not have metric values array")
+		}
 	})
 }

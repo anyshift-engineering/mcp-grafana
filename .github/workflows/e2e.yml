@@ -30,10 +30,10 @@ jobs:
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
       - name: Install uv
-        uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867 # v7.1.6
+        uses: astral-sh/setup-uv@61cb8a9741eeb8a550a1b8544337180c0fc8476b # v7.2.0
 
       - name: Set up Go
-        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
+        uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
         with:
           go-version: "1.24"
           cache: true
@@ -52,7 +52,7 @@ jobs:
             OPENAI_API_KEY=openai:api-key
 
       - name: Start docker-compose services
-        uses: hoverkraft-tech/compose-action@05da55b2bb8a5a759d1c4732095044bd9018c050
+        uses: hoverkraft-tech/compose-action@cce39442ef77411b28079afadd71d27581ac776d
         with:
           compose-file: "docker-compose.yaml"
 
@@ -64,7 +64,12 @@ jobs:
 
       - name: Start MCP server in background
         if: matrix.transport != 'stdio'
-        run: nohup ./dist/mcp-grafana -t ${{ matrix.transport }} > mcp.log 2>&1 &
+        run: |
+          nohup ./dist/mcp-grafana -t ${{ matrix.transport }} > mcp.log 2>&1 &
+          sleep 2  # Give server time to start and create log file
+          if [ ! -f mcp.log ]; then
+            echo "Warning: mcp.log was not created. Server may have failed to start."
+          fi
 
       - name: Run Python e2e tests
         env:
@@ -76,4 +81,4 @@ jobs:
 
       - if: failure() && matrix.transport != 'stdio'
         name: Print MCP logs
-        run: cat mcp.log
+        run: cat mcp.log 2>/dev/null || echo "No log file found (mcp.log)"
