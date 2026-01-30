@@ -24,12 +24,12 @@ jobs:
       # Do this early so that it can start up in time for the tests to run.
       # We may need to add a wait here.
       - name: Start docker-compose services
-        uses: hoverkraft-tech/compose-action@05da55b2bb8a5a759d1c4732095044bd9018c050
+        uses: hoverkraft-tech/compose-action@cce39442ef77411b28079afadd71d27581ac776d
         with:
           compose-file: "docker-compose.yaml"
 
       - name: Set up Go
-        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
+        uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
         with:
           go-version: "1.24"
           cache: true
@@ -54,7 +54,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Go
-        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
+        uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
         with:
           go-version: "1.24"
           cache: true

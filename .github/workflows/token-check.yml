@@ -18,7 +18,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Go
-        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
+        uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
         with:
           go-version-file: go.mod
 
@@ -27,7 +27,7 @@ jobs:
 
       - name: Download baseline
         id: download-baseline
-        uses: dawidd6/action-download-artifact@0ad3579bfb84ad8f64e7144efd7b21925c40c9eb
+        uses: dawidd6/action-download-artifact@9e12ab9856b6504e4969c60998d8fc619347a175
         with:
           branch: main
           name: token-baseline
@@ -45,7 +45,7 @@ jobs:
             ANTHROPIC_API_KEY=anthropic:api-key
 
       - name: Analyze tokens
-        uses: sd2k/mcp-tokens-action@2c121e1bb2ef8bf6c2fc9fe4a342c205b6d37c85
+        uses: sd2k/mcp-tokens-action@014db1a0f233c4559d5b056983855b0b71c99fa2
 
         with:
           command: ./dist/mcp-grafana
@@ -53,4 +53,5 @@ jobs:
           baseline: ${{ steps.download-baseline.outputs.found_artifact == 'true' && 'baseline/token-baseline.json' || '' }}
           threshold-percent: "5"
           comment: true
+          comment-on-pass: true
           github-token: ${{ secrets.GITHUB_TOKEN }}

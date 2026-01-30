@@ -20,7 +20,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Go
-        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
+        uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
         with:
           go-version-file: go.mod
 
@@ -35,7 +35,7 @@ jobs:
             ANTHROPIC_API_KEY=anthropic:api-key
 
       - name: Generate token baseline
-        uses: sd2k/mcp-tokens-action@2c121e1bb2ef8bf6c2fc9fe4a342c205b6d37c85
+        uses: sd2k/mcp-tokens-action@014db1a0f233c4559d5b056983855b0b71c99fa2
         with:
           command: ./dist/mcp-grafana
           anthropic-api-key: ${{ env.ANTHROPIC_API_KEY }}
